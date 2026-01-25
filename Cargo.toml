@@ -2,7 +2,7 @@
 name = "lfstage"
 version = "3.0.0-dev"
 edition = "2024"
-authors = [ "Toxikuu" ]
+authors = [ "tox" ]
 description = "LFS stage file generator"
 license = "GPL-3.0"
 
@@ -13,25 +13,25 @@ panic = "abort"
 debug-assertions = true
 
 [dependencies]
-fshelpers = { git = "https://github.com/Toxikuu/fshelpers.git" }
-clap = { version = "4.5.38", features = ["derive"] }
-is_executable = "1.0.4"
+fshelpers = { git = "https://github.com/tox-wtf/fshelpers.git" }
+clap = { version = "4", features = ["derive"] }
+is_executable = "1"
 libc = "0.2"
 serde_derive = "1.0"
-thiserror = "2.0.12"
-toml = "0.8"
+thiserror = "2"
+toml = "0.9"
 tracing = "0.1"
 tracing-appender = "0.2"
-tokio = { version = "1.45.0", features = ["full"] }
-reqwest = { version = "0.12.15", default-features = false, features = ["stream", "rustls-tls"] }
-futures = "0.3.31"
-async-once-cell = "0.5.4"
-which = "7.0.3"
-httpdate = "1.0.3"
-tempfile = "3.20.0"
-permitit = "0.1.1"
-size = "0.5.0"
-num_cpus = "1.16.0"
+tokio = { version = "1.45", features = ["full"] }
+reqwest = { version = "0.13", default-features = false, features = ["stream"] }
+futures = "0.3"
+async-once-cell = "0.5"
+which = "8"
+httpdate = "1"
+tempfile = "3"
+permitit = "0.1"
+size = "0.5"
+num_cpus = "1.16"
 
 [patch.crates-io]
 size = { path = "vendor/size" }
