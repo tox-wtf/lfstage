@@ -1044,7 +1044,8 @@ dependencies = [
 
 [[package]]
 name = "size"
-version = "0.5.0"
+version = "0.5.1"
+source = "git+https://github.com/tox-wtf/prettysize-rs.git#cb70a5ffa20be35b6f4b18e9ad875d8f0a935726"
 
 [[package]]
 name = "slab"
