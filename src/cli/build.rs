@@ -80,22 +80,22 @@ impl Cmd {
         // * `strip`        - If we're stripping, create the file `strip`
         if !self.dry {
             // set up `profile_tmpdir`
-            mkdir_p(profile.tmpdir())?;
+            mkdir_p(profile.tmp_dir())?;
 
             // timestamp
-            fs::write(profile.timestampfile(), &timestamp)?;
+            fs::write(profile.timestamp_file(), &timestamp)?;
 
             // stagefilename
-            fs::write(profile.stagefilenamefile(), &stagefile)?;
+            fs::write(profile.stagefilename_file(), &stagefile)?;
 
             // strip
             if !self.skip_strip && CONFIG.strip {
-                fshelpers::mkf(profile.tmpdir().join("strip"))?;
+                fshelpers::mkf(profile.tmp_dir().join("strip"))?;
             }
         }
 
         // The directory for profile-specific scripts
-        let scriptdir = &profile.scriptdir();
+        let scriptdir = &profile.scripts_dir();
 
         // Display what would be done
         if self.dry {
@@ -108,7 +108,7 @@ impl Cmd {
 
         // Check requirements
         if !self.skip_reqs {
-            check_reqs(&profile);
+            check_reqs(profile);
         }
 
         // TODO: Add profile-specific reqs.sh support

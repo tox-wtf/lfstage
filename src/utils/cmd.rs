@@ -1,22 +1,18 @@
 #![allow(clippy::expect_used)]
 
 use std::{
-    io::{
+    fs::{self, File}, io::{
         self,
-        BufRead,
-    },
-    path::Path,
-    process::{
+        BufRead, Write,
+    }, path::Path, process::{
         Command,
         Stdio,
         exit,
-    },
-    thread,
+    }, thread
 };
 
 use crate::{
-    config::CONFIG,
-    unravel,
+    config::CONFIG, profile::Profile, unravel
 };
 
 // TODO: Create a thiserror for script failures prolly
@@ -24,8 +20,9 @@ use crate::{
 // This could be written to take environment variables as vector argument but I cba
 /// # WARN: MUST CALL A SCRIPT, NOT A COMMAND
 #[allow(clippy::panic)]
-pub fn exec<P>(profile: Option<&str>, script: P) -> io::Result<()>
+pub fn exec<R, P>(profile: Option<R>, script: P) -> io::Result<()>
 where
+    R: AsRef<Profile>,
     P: AsRef<Path>,
 {
     let script = script.as_ref();
@@ -39,50 +36,44 @@ where
         exit(1)
     }
 
-    // TODO: This is really fucking gross, clean it up
-    #[allow(clippy::option_if_let_else)]
-    let command = if let Some(profile) = profile {
-        let envs_dir = Path::new("/var/lib/lfstage/profiles")
-            .join(profile)
-            .join("envs");
-        let base_env = envs_dir.join("base.env");
+    if let Some(profile) = profile {
+        let profile = profile.as_ref();
+        let base_env = profile.envs_dir().join("base.env");
 
-        if !base_env.exists() {
+        if ! base_env.exists() {
             error!("Base environment '{}' does not exist.", base_env.display());
             error!("Refusing to execute commands without a defined environment.");
             exit(1)
         }
 
-        format!(
-            r"
-                cp -f /usr/lib/lfstage/envs/internal.env /tmp/lfstage/bashenv
-                cat << EOF >> /tmp/lfstage/bashenv
-export ENVS={envs_dir}
-export MAKEFLAGS={makeflags}
+        fs::copy("/usr/lib/lfstage/envs/internal.env", "/tmp/lfstage/bashenv")?;
+
+        let mut f = File::options().append(true).open("/tmp/lfstage/bashenv")?;
+
+        let appended_env = format!(
+"export ENVS={envs_dir}
+export SCRIPTS={scripts_dir}
+export JOBS={jobs}
 export LFSTAGE_PROFILE={profile}
 export LFSTAGE_VERSION={version}
-source {rcfile} || exit 2
-EOF
-                BASH_ENV=/tmp/lfstage/bashenv bash --noprofile --norc {script}
-            ",
-            envs_dir = envs_dir.display(),
-            makeflags = &CONFIG.makeflags,
+source {rcfile} || exit 2",
+            envs_dir = profile.envs_dir().display(),
+            scripts_dir = profile.scripts_dir().display(),
+            jobs = &CONFIG.jobs,
             rcfile = base_env.display(),
-            script = script.display(),
+            profile = &profile.name,
             version = env!("CARGO_PKG_VERSION")
-        )
-    } else {
-        format!(
-            "BASH_ENV=/usr/lib/lfstage/envs/internal.env bash --noprofile --norc {}",
-            script.display()
-        )
-    };
+        );
+
+        f.write_all(appended_env.as_bytes())?;
+    }
 
     let mut child = Command::new("bash")
+        .env_clear()
         .arg("--noprofile")
         .arg("--norc")
-        .arg("-c")
-        .arg(&command)
+        .arg(script.as_os_str())
+        .env("BASH_ENV", "/tmp/lfstage/bashenv")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
@@ -141,20 +132,22 @@ macro_rules! exec {
         use std::path::Path;
         debug!(
             "Using profile '{}' to execute script '{}'",
-            $profile.name,
+            $crate::profile::Profile::new($profile),
             Path::new($script).display(),
         );
-        $crate::utils::cmd::exec(Some($profile.name.as_str()), $script)
+        $crate::utils::cmd::exec(Some($profile), $script)
     }};
 
     // Pattern: just a script
     ($script:expr) => {{
         use std::path::Path;
+        use $crate::profile::Profile;
+
         debug!(
             "Executing {} without a profile",
             Path::new($script).display(),
         );
-        $crate::utils::cmd::exec(None, $script)
+        $crate::utils::cmd::exec::<&Profile, _>(None, $script)
     }};
 }
 
@@ -163,7 +156,7 @@ mod test {
     use crate::profile::Profile;
 
     #[test]
-    fn exec_no_profile() { assert!(exec!("/usr/lib/lfstage/scripts/testing.sh").is_ok()) }
+    fn exec_no_profile() { assert!(exec!("s"; "/usr/lib/lfstage/scripts/testing.sh").is_ok()) }
 
     #[test]
     #[should_panic(expected = "Nonexistent script")]

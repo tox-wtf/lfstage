@@ -2,30 +2,25 @@
 //! Utilities related to downloading
 
 use std::{
-    fs::{
+    fmt, fs::{
         self,
         File,
-    },
-    io::{
+    }, io::{
         self,
         Write,
-    },
-    path::{
+    }, path::{
         Path,
         PathBuf,
-    },
-    process::exit,
-    sync::{
+    }, process::exit, str::FromStr, sync::{
         Arc,
         atomic::{
             AtomicBool,
             Ordering,
         },
-    },
-    time::{
+    }, time::{
         Duration,
         SystemTime,
-    },
+    }
 };
 
 use fshelpers::mkdir_p;
@@ -38,7 +33,6 @@ use permitit::Permit;
 use reqwest::{
     Client,
     header::{
-        // ACCEPT_ENCODING,
         HeaderMap,
         LAST_MODIFIED,
         USER_AGENT,
@@ -56,7 +50,7 @@ use crate::unravel;
 /// # Creates a reqwest client
 ///
 /// This client follows up to 16 redirects and has a timeout of 32 seconds. It also sets the user
-/// agent to lfstage/3.0.0.
+/// agent to crate/version.
 #[allow(clippy::expect_used)]
 fn create_client() -> Result<Client, reqwest::Error> {
     let user_agent = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
@@ -75,44 +69,36 @@ fn create_client() -> Result<Client, reqwest::Error> {
         .build()
 }
 
-/// # Parses a 'dl'
-///
-/// A 'dl' can either be a url, or a url pointing to a filename.
-///
-/// # Arguments
-/// * `dl`          - The raw download to be parsed.
-///
-/// # Returns
-/// * `url`         - The first element in the tuple.
-/// * `filename`    - The second element in the tuple.
-///
-/// # Errors
-/// Panics if:
-/// - The download does not contain a '/'.
-///
-/// # Examples
-/// - <https://github.com/lloyd/yajl/commit/6fe59ca50dfd65bdb3d1c87a27245b2dd1a072f9.patch> -> yajl-2.1.0-cmake-4-compat.patch
-/// - <https://ftp.gnu.org/gnu/bash/bash-5.2.37.tar.gz>
-#[allow(clippy::needless_pass_by_value)] // required by multithread shenanigans
-// TODO: Find a workaround for ^
-pub fn parse_dl<S: Into<String>>(dl: S) -> (String, String) {
-    let dl = dl.into();
-    // I fucking wish I could use &str -> (&str, &str) here. The function is practically begging
-    // but it has to be thread safe :sad:
-    if let Some((url, f)) = dl.split_once(" -> ") {
-        (url.to_string(), f.to_string())
-    } else {
-        let (_, f) = dl.rsplit_once('/').unwrap_or_else(|| {
-            error!("Invalid url: {dl}");
-            exit(1)
-        });
+#[derive(Debug)]
+pub struct Download {
+    pub url: String,
+    pub dest: String,
+}
 
-        (dl.to_string(), f.to_string())
+impl fmt::Display for Download {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} -> {}", self.url, self.dest)
+    }
+}
+
+impl FromStr for Download {
+    type Err = DownloadError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((u, f)) = s.split_once(" -> ") {
+            return Ok(Self { url: u.to_string(), dest: f.to_string() });
+        }
+
+        let (_, f) = s.rsplit_once('/').ok_or_else(|| DownloadError::InvalidUrl(s.to_string()))?;
+        Ok(Self { url: s.to_string(), dest: f.to_string() })
     }
 }
 
 #[derive(Debug, Error)]
 pub enum DownloadError {
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(String),
+
     #[error("Extant file: {0}")]
     Extant(PathBuf),
 
@@ -123,6 +109,7 @@ pub enum DownloadError {
     Reqwest(#[from] reqwest::Error),
 }
 
+#[inline]
 fn get_upstream_modtime(headers: &HeaderMap) -> Option<SystemTime> {
     let h = headers.get(LAST_MODIFIED)?;
     let s = h.to_str().ok()?;
@@ -130,6 +117,7 @@ fn get_upstream_modtime(headers: &HeaderMap) -> Option<SystemTime> {
     Some(t)
 }
 
+#[inline]
 fn get_local_modtime(path: &Path) -> Option<SystemTime> {
     let m = path.metadata().ok()?;
     let t = m.modified().ok()?;
@@ -148,7 +136,6 @@ async fn download_file<P: AsRef<Path>>(
     debug!("Fetching '{url}'");
     let resp = client
         .get(url)
-        // .header(ACCEPT_ENCODING, "identity")
         .send()
         .await?
         .error_for_status()?;
@@ -164,6 +151,7 @@ async fn download_file<P: AsRef<Path>>(
                 file_path.display()
             );
         }
+
         return Err(DownloadError::Extant(file_path.to_owned()));
     }
 
@@ -186,6 +174,7 @@ async fn download_file<P: AsRef<Path>>(
 
         partfile.write_all(&data)?;
     }
+
     partfile.flush()?; // paranoia
 
     // Move the part file to its final destination
@@ -221,19 +210,19 @@ pub async fn download_sources<P: AsRef<Path>, Q: AsRef<Path>>(
     for dl in dls {
         let client = client.clone();
         let failed = Arc::clone(&failed);
-        let (url, filename) = parse_dl(dl);
-        let file_path = sources_dir.as_ref().join(&filename);
+        let dest = sources_dir.as_ref().join(&dl.dest);
 
         let task = task::spawn(async move {
-            if let Err(e) = download_file(client, &url, file_path, download_extant)
+            if let Err(e) = download_file(client, &dl.url, &dest, download_extant)
                 .await
                 .permit(|e| matches!(e, DownloadError::Extant(_)))
             {
-                error!("Failed to download {url} to {filename}: {e}");
+                error!("Failed to download {} to {}: {e}", dl.url, dest.display());
                 unravel!(e);
                 failed.store(false, Ordering::Relaxed);
             }
         });
+
         tasks.push(task);
     }
 
@@ -241,30 +230,32 @@ pub async fn download_sources<P: AsRef<Path>, Q: AsRef<Path>>(
     if failed.load(Ordering::Relaxed) {
         error!("Failed to download one or more sources");
         exit(1)
-    } else {
-        Ok(())
     }
+
+    Ok(())
 }
 
 /// # Read dl's from a file
 ///
 /// Will fail if the path does not exist, could not be read, contains invalid UTF-8, among other
 /// errors (basically anywhere `read_to_string()` would fail).
-pub fn read_dls_from_file<P>(path: P) -> Result<Vec<String>, DownloadError>
+pub fn read_dls_from_file<P>(path: P) -> Result<Vec<Download>, DownloadError>
 where
     P: AsRef<Path>,
 {
-    Ok(fs::read_to_string(path)?
+    fs::read_to_string(path)?
         .lines()
         .filter(|l| !is_comment(l))
         .map(|l| strip_comment_part(l).to_string())
-        .collect::<Vec<_>>())
+        .map(|dl| dl.parse())
+        .collect::<Result<_, _>>()
 }
 
 /// # Check if a line is a comment or empty
 ///
 /// A line is a comment if it starts with '# ', '; ', or '// ' (leading white space is covered).
 #[rustfmt::skip]
+#[inline]
 fn is_comment(line: &str) -> bool {
     let l = line.trim_start();
     l.is_empty()
@@ -277,6 +268,7 @@ fn is_comment(line: &str) -> bool {
 ///
 /// A comment part is the right side of a line containing ' #', ' //', or ' ;'.
 #[rustfmt::skip]
+#[inline]
 fn strip_comment_part(line: &str) -> &str {
     let comment_starts = [
         line.find(" #"),

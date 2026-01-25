@@ -11,7 +11,7 @@ pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::load);
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 pub struct Config {
-    pub makeflags:       String,
+    pub jobs:            usize,
     pub default_profile: String,
     pub log_level:       String,
     pub log_max_size:    String,
@@ -21,7 +21,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            makeflags:       format!("-j{}", num_cpus::get()),
+            jobs:            num_cpus::get(),
             default_profile: "x86_64-glibc-tox-stage2".to_string(),
             log_level:       "trace".to_string(),
             log_max_size:    "10 MB".to_string(),

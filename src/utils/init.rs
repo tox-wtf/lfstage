@@ -19,12 +19,14 @@ use std::{
     process::exit,
     str::FromStr,
     sync::OnceLock,
+    time::Instant,
 };
 
 use size::{
     Size,
     SizeFormatter,
 };
+
 use tempfile::NamedTempFile;
 use tracing::metadata::LevelFilter;
 use tracing_appender::{
@@ -34,7 +36,7 @@ use tracing_appender::{
 use tracing_subscriber::{
     EnvFilter,
     fmt::{
-        time,
+        time::FormatTime,
         writer::MakeWriterExt,
     },
 };
@@ -59,8 +61,6 @@ pub fn init() {
 
 fn wrap_trim_log(log_file: &str) {
     let max_size = get_max_log_size();
-    // TODO: Consider making a PR to `size` to allow TryInto<i64> instead of forcing i64.
-    // Currently, it's a vendored patch.
     match trim_log(log_file, max_size) {
         | Ok(b) => {
             let szf = SizeFormatter::new()
@@ -83,25 +83,19 @@ fn wrap_trim_log(log_file: &str) {
 
 #[allow(clippy::cast_sign_loss)]
 fn get_max_log_size() -> u64 {
-    #[allow(clippy::option_if_let_else)]
-    // "Using the dedicated functions of the `Option` type is clearer and more concise than an `if
-    // let` expression."
-    // -- https://rust-lang.github.io/rust-clippy/master/index.html#option_if_let_else
-    //
-    // I personally disagree regarding clarity here.
     if let Ok(sz) = Size::from_str(&CONFIG.log_max_size) {
-        sz.bytes() as u64
-    } else {
-        warn!("Failed to parse log_max_size from config");
-        warn!("Falling back to default");
-        if let Ok(sz) = Size::from_str(&Config::default().log_max_size) {
-            sz.bytes() as u64
-        } else {
-            warn!("I fucked up the default config. Please report this!");
-            warn!("Continuing with yet another fallback");
-            10 * 1024 * 1024 // 10 MB
-        }
+        return sz.bytes() as u64
     }
+
+    warn!("Failed to parse log_max_size from config");
+    warn!("Falling back to default");
+    if let Ok(sz) = Size::from_str(&Config::default().log_max_size) {
+        return sz.bytes() as u64
+    }
+
+    warn!("I fucked up the default config. Please report this!");
+    warn!("Continuing with yet another fallback");
+    10 * 1024 * 1024 // 10 MB
 }
 
 fn check_perms() {
@@ -111,8 +105,25 @@ fn check_perms() {
     }
 }
 
+/// # Uptime struct for timestamp formatting in logs
+struct Uptime(Instant);
+
+impl Uptime {
+    /// # Create a new [`Uptime`]
+    fn new() -> Self { Self(Instant::now()) }
+}
+
+impl FormatTime for Uptime {
+    fn format_time(&self, w: &mut tracing_subscriber::fmt::format::Writer<'_>) -> std::fmt::Result {
+        let elapsed = self.0.elapsed();
+        let s = elapsed.as_secs();
+        let ms = elapsed.subsec_millis();
+        write!(w, "{s:>4}.{ms:03}")
+    }
+}
+
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 fn log<P: AsRef<str>>(path: P) {
-    #[allow(clippy::expect_used)]
     let (dir, file) = path
         .as_ref()
         .rsplit_once('/')
@@ -121,7 +132,6 @@ fn log<P: AsRef<str>>(path: P) {
     let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
 
     let level = LevelFilter::from_str(&CONFIG.log_level).unwrap_or(LevelFilter::DEBUG);
-    #[allow(clippy::unwrap_used)] // hardcoded parses should be fine
     let filter = EnvFilter::builder()
         .with_default_directive(level.into())
         .with_env_var("LOG_LEVEL")
@@ -134,16 +144,12 @@ fn log<P: AsRef<str>>(path: P) {
         .with_env_filter(filter)
         .with_level(true)
         .with_target(true)
-        .with_timer(time::uptime())
+        .with_timer(Uptime::new())
         .with_writer(file_writer.and(io::stdout))
         .compact()
         .init();
 
-    if LOG_GUARD.set(guard).is_err() {
-        eprintln!("[UNREACHABLE] log() was called more than once");
-        eprintln!("Logs are probably fucked");
-        warn!("If you're seeing this the logs are only a little fucked");
-    }
+    LOG_GUARD.set(guard).expect("logs were inited more than once");
 }
 
 /// # Trims a log file until it's under a maximum size

@@ -39,20 +39,20 @@ impl Cmd {
     pub async fn run(&self) -> Result<(), CmdError> {
         let profile = Profile::new(&self.profile);
 
-        if !profile.sourceslist().exists() {
+        if !profile.sources_file().exists() {
             error!("Sources list for profile '{}' does not exist", self.profile);
-            return Err(CmdError::MissingComponent(profile.sourceslist()));
+            return Err(CmdError::MissingComponent(profile.sources_file()));
         }
 
         if self.dry {
-            let dls = read_dls_from_file(profile.sourceslist())?;
+            let dls = read_dls_from_file(profile.sources_file())?;
             println!(
                 "Would download the following to '{}':",
-                profile.sourcesdir().display()
+                profile.sources_dir().display()
             );
 
             for dl in &dls {
-                println!(" - {dl}");
+                println!("    {dl}");
             }
 
             return Ok(())

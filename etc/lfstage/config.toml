@@ -1,12 +1,7 @@
 # LFStage config
-#
-# Defaults are used here, but they may be outdated. To view the available
-# options and defaults, visit any of the following:
-# - https://github.com/Toxikuu/lfstage/blob/master/src/config.rs
-# - TODO: Link to documentation whenever it's written
 
 default_profile = "x86_64-glibc-tox-stage2"
-makeflags = "-j5" # WARN: Do not put your CFLAGS here
+nproc = 5
 strip = true
 log_level = "trace"
 log_max_size = "10 MB"

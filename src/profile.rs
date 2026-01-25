@@ -2,6 +2,7 @@
 //! The profile struct and related code
 
 use std::{
+    ptr,
     ffi::OsStr,
     fmt,
     fs,
@@ -20,68 +21,98 @@ use crate::{
     utils::dl::{
         DownloadError,
         download_sources,
-        parse_dl,
         read_dls_from_file,
     },
 };
 
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct Profile {
-    pub name: String,
+    pub name: str,
+}
+
+impl AsRef<Self> for Profile {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl AsRef<str> for Profile {
+    #[inline]
+    fn as_ref(&self) -> &str {
+        &self.name
+    }
+}
+
+impl AsRef<Profile> for str {
+    #[inline]
+    fn as_ref(&self) -> &Profile {
+        Profile::new(self)
+    }
 }
 
 impl fmt::Display for Profile {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.name) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", &self.name) }
 }
 
 impl Profile {
-    pub fn new<S: Into<String>>(name: S) -> Self { Self { name: name.into() } }
+    pub fn new<S: AsRef<str> + ?Sized>(s: &S) -> &Self {
+        // SAFETY: Trust me bro
+        unsafe { &*(ptr::from_ref(s.as_ref()) as *const Self) }
+    }
 
-    pub fn tmpdir(&self) -> PathBuf { Path::new("/tmp/lfstage").join(&self.name) }
+    #[inline]
+    pub fn tmp_dir(&self) -> PathBuf { Path::new("/tmp/lfstage").join(&self.name) }
 
-    pub fn stagefilenamefile(&self) -> PathBuf { self.tmpdir().join("stagefilename") }
+    #[inline]
+    pub fn stagefilename_file(&self) -> PathBuf { self.tmp_dir().join("stagefilename") }
 
-    pub fn timestampfile(&self) -> PathBuf { self.tmpdir().join("timestamp") }
+    #[inline]
+    pub fn timestamp_file(&self) -> PathBuf { self.tmp_dir().join("timestamp") }
 
-    pub fn scriptdir(&self) -> PathBuf {
+    #[inline]
+    pub fn profile_lib_dir(&self) -> PathBuf {
         Path::new("/var/lib/lfstage/profiles")
             .join(&self.name)
-            .join("scripts")
     }
 
-    pub fn stagedir(&self) -> PathBuf {
+    #[inline]
+    pub fn profile_cache_dir(&self) -> PathBuf {
         Path::new("/var/cache/lfstage/profiles")
             .join(&self.name)
-            .join("stages")
     }
 
-    pub fn sourcesdir(&self) -> PathBuf {
-        Path::new("/var/cache/lfstage/profiles")
-            .join(&self.name)
-            .join("sources")
-    }
+    #[inline]
+    pub fn envs_dir(&self) -> PathBuf { self.profile_lib_dir().join("envs") }
 
-    pub fn sourceslist(&self) -> PathBuf {
-        Path::new("/var/lib/lfstage/profiles")
-            .join(&self.name)
-            .join("sources")
-    }
+    #[inline]
+    pub fn scripts_dir(&self) -> PathBuf { self.profile_lib_dir().join("scripts") }
+
+    #[inline]
+    pub fn stages_dir(&self) -> PathBuf { self.profile_cache_dir().join("stages") }
+
+    #[inline]
+    pub fn sources_dir(&self) -> PathBuf { self.profile_cache_dir().join("sources") }
+
+    #[inline]
+    pub fn sources_file(&self) -> PathBuf { self.profile_lib_dir().join("sources") }
 
     pub fn get_registered_sources(&self) -> Vec<String> {
-        read_dls_from_file(self.sourceslist())
+        read_dls_from_file(self.sources_file())
             .unwrap_or_else(|e| {
                 error!("Failed to read dls from sources list: {e}");
                 exit(1)
             })
             .iter()
-            .map(|dl| parse_dl(dl).1)
-            .collect::<Vec<_>>()
+            .map(|dl| dl.dest.clone())
+            .collect()
     }
 
     pub fn collect_build_scripts(&self) -> Vec<PathBuf> {
         // Gather all profile-specific scripts
         let mut scripts = self
-            .scriptdir()
+            .scripts_dir()
             .read_dir()
             .unwrap_or_else(|e| {
                 warn!("Failed to read scripts directory for profile '{self}': {e}");
@@ -135,7 +166,7 @@ impl Profile {
         let registered = self.get_registered_sources();
 
         let sources = self
-            .sourcesdir()
+            .sources_dir()
             .read_dir()?
             .filter_map(|e| match e {
                 | Ok(e) => Some(e),
@@ -162,7 +193,7 @@ impl Profile {
         mkdir_p(lfs_sources)?;
 
         for source in sources {
-            let dest = lfs_sources.join(source.components().next_back().unwrap());
+            let dest = lfs_sources.join(source.file_name().expect("Invalid source filename"));
             fs::copy(source, dest)?;
         }
 
@@ -170,7 +201,7 @@ impl Profile {
     }
 
     pub fn save_stagefile(&self) -> std::io::Result<()> {
-        mkdir_p(self.stagedir())?;
+        mkdir_p(self.stages_dir())?;
         if exec!(&self; "/usr/lib/lfstage/scripts/save.sh").is_err() {
             error!("Failed to save stage file");
             exit(1)
@@ -178,13 +209,13 @@ impl Profile {
 
         info!(
             "Saved stage file to {}",
-            fs::read_to_string(self.stagefilenamefile())?
+            fs::read_to_string(self.stagefilename_file())?
         );
 
         Ok(())
     }
 
     pub async fn download_sources(&self, download_extant: bool) -> Result<(), DownloadError> {
-        download_sources(self.sourceslist(), self.sourcesdir(), download_extant).await
+        download_sources(self.sources_file(), self.sources_dir(), download_extant).await
     }
 }
