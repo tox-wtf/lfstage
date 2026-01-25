@@ -1,3 +1,0 @@
-[submodule "vendor/size"]
-	path = vendor/size
-	url = https://github.com/tox-wtf/prettysize-rs.git
