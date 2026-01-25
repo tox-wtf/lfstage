@@ -26,12 +26,7 @@ use size::{
     SizeFormatter,
 };
 use tempfile::NamedTempFile;
-use tracing::{
-    debug,
-    error,
-    metadata::LevelFilter,
-    warn,
-};
+use tracing::metadata::LevelFilter;
 use tracing_appender::{
     non_blocking::WorkerGuard,
     rolling,

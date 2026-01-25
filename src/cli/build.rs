@@ -8,7 +8,6 @@ use std::{
 
 use clap::Args;
 use fshelpers::mkdir_p;
-use tracing::error;
 
 use super::{
     CmdError,

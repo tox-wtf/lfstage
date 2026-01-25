@@ -4,10 +4,10 @@
 
 #[cfg(debug_assertions)]
 pub fn __unravel(e: &impl std::error::Error) {
-    tracing::error!("Error: {e}");
+    error!("Error: {e}");
     let mut source = e.source();
     while let Some(e) = source {
-        tracing::error!("    Caused by: {e}");
+        error!("    Caused by: {e}");
         source = e.source();
     }
 }

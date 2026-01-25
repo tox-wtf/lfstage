@@ -4,7 +4,6 @@ use std::fs::write;
 
 use clap::Args;
 use fshelpers::mkdir_p;
-use tracing::info;
 
 use crate::{
     config::CONFIG,

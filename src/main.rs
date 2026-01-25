@@ -19,7 +19,9 @@ mod utils;
 use std::process::exit;
 
 use clap::Parser;
-use tracing::error;
+
+#[macro_use]
+extern crate tracing;
 
 #[tokio::main]
 async fn main() {

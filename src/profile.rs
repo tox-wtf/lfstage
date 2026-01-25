@@ -14,12 +14,6 @@ use std::{
 
 use fshelpers::mkdir_p;
 use is_executable::IsExecutable;
-use tracing::{
-    debug,
-    error,
-    info,
-    warn,
-};
 
 use crate::{
     exec,

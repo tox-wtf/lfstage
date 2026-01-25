@@ -47,12 +47,6 @@ use reqwest::{
 };
 use thiserror::Error;
 use tokio::task;
-use tracing::{
-    debug,
-    error,
-    info,
-    trace,
-};
 
 use crate::unravel;
 

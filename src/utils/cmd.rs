@@ -14,12 +14,6 @@ use std::{
     thread,
 };
 
-use tracing::{
-    debug,
-    error,
-    trace,
-};
-
 use crate::{
     config::CONFIG,
     unravel,
@@ -145,7 +139,7 @@ macro_rules! exec {
     // Pattern: profile and a script
     ($profile:expr; $script:expr) => {{
         use std::path::Path;
-        tracing::debug!(
+        debug!(
             "Using profile '{}' to execute script '{}'",
             $profile.name,
             Path::new($script).display(),
@@ -156,7 +150,7 @@ macro_rules! exec {
     // Pattern: just a script
     ($script:expr) => {{
         use std::path::Path;
-        tracing::debug!(
+        debug!(
             "Executing {} without a profile",
             Path::new($script).display(),
         );

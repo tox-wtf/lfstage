@@ -1,10 +1,6 @@
 // cli/build.rs
 
 use clap::Args;
-use tracing::{
-    error,
-    info,
-};
 
 use super::CmdError;
 use crate::{
