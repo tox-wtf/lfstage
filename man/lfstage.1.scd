@@ -44,4 +44,4 @@ _lfstage-profile_(5)
 # AUTHORS
 
 Created and maintained by Tox <toxtek@proton.me>. Upstream is located at
-https://github.com/Toxikuu/lfstage.git.
+https://github.com/tox-wtf/lfstage.git.

@@ -22,7 +22,7 @@ _lfstage-profile_(5) for structure.
 
 A snapshot of the sources for the to profile may be viewed at the following
 link:
-- https://github.com/Toxikuu/to-lfstage/blob/99f4231eb670a02066b3c751d235e040ef2fff41/sources
+- https://github.com/tox-wtf/to-lfstage/blob/99f4231eb670a02066b3c751d235e040ef2fff41/sources
 
 A brief example is also provided below:
 
@@ -45,4 +45,4 @@ _lfstage-profile_(5) _lfstage_(1)
 # AUTHORS
 
 Created and maintained by Tox <toxtek@proton.me>. Upstream is located at
-https://github.com/Toxikuu/lfstage.git.
+https://github.com/tox-wtf/lfstage.git.

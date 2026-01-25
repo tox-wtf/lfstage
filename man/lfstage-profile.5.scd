@@ -120,8 +120,8 @@ scripts for individual packages, for instance.
 ; TODO: Update this whenever API changes. <- when the SCRIPTS variable gets
 ; exposed
 Snapshots of two profiles may be viewed at the following links:
-. https://github.com/Toxikuu/to-lfstage/tree/99f4231eb670a02066b3c751d235e040ef2fff41
-. https://github.com/Toxikuu/x86_64-glibc-tox-stage2-lfstage/tree/a1562f556926b53c827962893704df79f7dc22b9
+. https://github.com/tox-wtf/to-lfstage/tree/99f4231eb670a02066b3c751d235e040ef2fff41
+. https://github.com/tox-wtf/x86_64-glibc-tox-stage2-lfstage/tree/a1562f556926b53c827962893704df79f7dc22b9
 
 
 # NOTES
@@ -174,4 +174,4 @@ _lfstage-sources_(5) _lfstage_(1)
 # AUTHORS
 
 Created and maintained by Tox <toxtek@proton.me>. Upstream is located at
-https://github.com/Toxikuu/lfstage.git.
+https://github.com/tox-wtf/lfstage.git.

@@ -41,7 +41,7 @@ stripping binaries, and saving the stage file.
 ## Installation
 To download and install LFStage run the following commands:
 ```bash
-git clone https://github.com/Toxikuu/lfstage.git
+git clone https://github.com/tox-wtf/lfstage.git
 cd lfstage
 git submodule update
 
@@ -89,7 +89,7 @@ Let's say you wanted to build the profile `x86_64-glibc-tox-stage2`:
 
 ```bash
 # First, import it
-sudo lfstage import https://github.com/Toxikuu/x86_64-glibc-tox-stage2-lfstage.git
+sudo lfstage import https://github.com/tox-wtf/x86_64-glibc-tox-stage2-lfstage.git
 
 # Download the sources and build the stage file
 # Note this command takes a long time -- ~30 minutes on my system
