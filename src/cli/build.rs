@@ -131,13 +131,14 @@ impl Cmd {
 }
 
 fn check_reqs(profile: &Profile) {
-    if Path::new("/tmp/lfstage/reqs").exists() {
-        return
-    }
+    let custom_reqs = format!("/var/lib/lfstage/profiles/{profile}/reqs.sh");
+    let reqs_script = match Path::new(&custom_reqs).exists() {
+        true => custom_reqs.as_str(),
+        false => "/usr/lib/lfstage/scripts/reqs.sh",
+    };
 
-    if let Err(e) = exec!(&profile; "/usr/lib/lfstage/scripts/reqs.sh") {
+    if let Err(e) = exec!(&profile; reqs_script) {
         error!("System does not meet requirements: {e}");
-        // warn!("If you'd like to continue regardless, `touch /tmp/lfstage/reqs`");
         exit(1)
     }
 }
