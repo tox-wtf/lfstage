@@ -23,11 +23,6 @@ macro_rules! unravel {
     };
 }
 
-#[cfg(debug_assertions)]
-pub fn __dbug(args: std::fmt::Arguments) {
-    eprintln!("\x1b[38;1m DBUG\x1b[39m :::\x1b[0m {args}");
-}
-
 /// # Prints debugging information
 #[macro_export]
 macro_rules! dbug {

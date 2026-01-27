@@ -46,7 +46,6 @@ use crate::{
         CONFIG,
         Config,
     },
-    dbug,
 };
 
 static LOG_GUARD: OnceLock<WorkerGuard> = OnceLock::new();
@@ -143,7 +142,8 @@ fn log<P: AsRef<str>>(path: P) {
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_level(true)
-        .with_target(true)
+        .with_target(cfg!(debug_assertions))
+        .with_line_number(cfg!(debug_assertions))
         .with_timer(Uptime::new())
         .with_writer(file_writer.and(io::stdout))
         .compact()
@@ -177,7 +177,6 @@ fn trim_log<P: AsRef<Path>>(path: P, max_size: u64) -> io::Result<u64> {
     let size = fs::metadata(path)?.len();
 
     if size <= max_size {
-        dbug!("Log size is {size}");
         return Ok(0);
     }
 
@@ -222,10 +221,7 @@ mod test {
 
     use tempfile::NamedTempFile;
 
-    use crate::{
-        dbug,
-        utils::init::trim_log,
-    };
+    use crate::utils::init::trim_log;
 
     #[test]
     #[allow(clippy::expect_used)]
@@ -268,7 +264,6 @@ mod test {
         // Ensure newlines are present
         let contents = fs::read_to_string(path).unwrap();
         let lines = contents.lines().collect::<Vec<_>>();
-        dbug!("{lines:#?}");
 
         // Ensure end is intact
         assert!(lines.last().unwrap().contains("Further reading: "));

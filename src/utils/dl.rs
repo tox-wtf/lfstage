@@ -56,7 +56,6 @@ fn create_client() -> Result<Client, reqwest::Error> {
     let user_agent = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     Client::builder()
         .redirect(Policy::limited(16))
-        .http1_ignore_invalid_headers_in_responses(true)
         .default_headers({
             let mut headers = HeaderMap::new();
             headers.insert(

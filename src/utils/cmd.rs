@@ -12,7 +12,7 @@ use std::{
 };
 
 use crate::{
-    config::CONFIG, profile::Profile, unravel
+    config::CONFIG, profile::Profile
 };
 
 // TODO: Create a thiserror for script failures prolly
@@ -83,44 +83,28 @@ source {rcfile} || exit 2",
 
     let stdout_thread = thread::spawn(move || {
         let reader = io::BufReader::new(stdout);
-        for line in reader.lines() {
-            match line {
-                | Ok(line) => {
-                    trace!(" [STDOUT] {line}");
-                },
-                | Err(e) => {
-                    unravel!(e);
-                    error!("Error reading stdout: {e}");
-                },
-            }
+        for line in reader.lines().map_while(Result::ok) {
+            trace!("{line}");
         }
     });
 
     let stderr_thread = thread::spawn(move || {
         let reader = io::BufReader::new(stderr);
-        for line in reader.lines() {
-            match line {
-                | Ok(line) => {
-                    debug!(" [STDERR] {line}");
-                },
-                | Err(e) => {
-                    unravel!(e);
-                    error!("Error reading stderr: {e}");
-                },
-            }
+        for line in reader.lines().map_while(Result::ok) {
+            debug!("{line}");
         }
     });
 
     let status = child.wait()?;
     if !status.success() {
-        error!("Command failed with status {status}");
+        error!("Command failed: {status}");
         return Err(io::Error::other(format!(
-            "Command failed with status: {status}"
+            "Command failed: {status}"
         )));
     }
 
-    stdout_thread.join().expect("Failed to join thread");
-    stderr_thread.join().expect("Failed to join thread");
+    stdout_thread.join().expect("Handle already joined");
+    stderr_thread.join().expect("Handle already joined");
 
     Ok(())
 }
