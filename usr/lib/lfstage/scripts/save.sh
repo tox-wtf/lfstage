@@ -36,7 +36,7 @@ BASENAME="$(basename "$STAGEFILE")"
 ln -sfv "../profiles/$LFSTAGE_PROFILE/stages/$BASENAME" "/var/cache/lfstage/stages/$BASENAME"
 
 # Finalize
-cd
+cd /
 if mount | grep "$LFS"; then
     umount -Rv  "$LFS"
 fi
