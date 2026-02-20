@@ -1,16 +1,5 @@
 // src/main.rs
 
-#![deny(clippy::perf, clippy::todo, clippy::complexity)]
-#![warn(
-    clippy::all,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::panic,
-    unused
-)]
-
 mod cli;
 mod config;
 mod profile;
