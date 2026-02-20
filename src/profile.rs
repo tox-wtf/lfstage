@@ -193,7 +193,12 @@ impl Profile {
         mkdir_p(lfs_sources)?;
 
         for source in sources {
-            let dest = lfs_sources.join(source.file_name().expect("Invalid source filename"));
+            let Some(source_filename) = source.file_name() else {
+                error!("Invalid source: {}", source.display());
+                exit(1);
+            };
+
+            let dest = lfs_sources.join(source_filename);
             fs::copy(source, dest)?;
         }
 
