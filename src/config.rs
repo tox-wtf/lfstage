@@ -14,7 +14,6 @@ pub struct Config {
     pub jobs:            usize,
     pub default_profile: String,
     pub log_level:       String,
-    pub log_max_size:    String,
     pub strip:           bool,
 }
 
@@ -24,7 +23,6 @@ impl Default for Config {
             jobs:            num_cpus::get(),
             default_profile: "x86_64-glibc-tox-stage2".to_string(),
             log_level:       "trace".to_string(),
-            log_max_size:    "10 MB".to_string(),
             strip:           true,
         }
     }

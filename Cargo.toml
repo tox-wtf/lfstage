@@ -30,7 +30,6 @@ which = "8"
 httpdate = "1"
 tempfile = "3"
 permitit = "0.1"
-size = { version = "0.5", git = "https://github.com/tox-wtf/prettysize-rs.git" }
 num_cpus = "1.16"
 
 [dependencies.chrono]

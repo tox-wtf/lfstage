@@ -4,4 +4,3 @@ default_profile = "x86_64-glibc-tox-stage2"
 nproc = 5
 strip = true
 log_level = "trace"
-log_max_size = "10 MB"
