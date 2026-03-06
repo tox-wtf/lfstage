@@ -10,6 +10,8 @@ use std::{
     path::PathBuf,
 };
 
+use clap::builder::Styles;
+use clap::builder::styling::AnsiColor;
 use clap::{
     Parser,
     Subcommand,
@@ -18,8 +20,24 @@ use thiserror::Error;
 
 use crate::utils::dl::DownloadError;
 
+const STYLES: Styles = Styles::styled()
+    .header(AnsiColor::Cyan.on_default().bold())
+    .usage(AnsiColor::Cyan.on_default().bold())
+    .literal(AnsiColor::Green.on_default().bold())
+    .placeholder(AnsiColor::White.on_default());
+
 #[derive(Parser)]
-#[command(name = "LFStage", version, author, about)]
+#[command(
+    name = "LFStage",
+    version = env!("CARGO_PKG_VERSION"),
+    styles = STYLES,
+    author,
+    about,
+    infer_subcommands = true,
+    infer_long_args = true,
+    disable_help_subcommand = true,
+    propagate_version = true,
+)]
 pub struct Cli {
     #[command(subcommand)]
     command: Commands,
