@@ -13,27 +13,19 @@ could still use some work. Support for profile imports and exports looks solid.
 
 I plan to write HTML docs with `mdbook` that run through the entire process of
 creating a profile, from setting up the git repo to executing the build, and
-then using the stage file afterwards. I'd like to add optional per-profile
-requirements scripts (these should be backwards compatible). I need to address
-miscellaneous comment todos. Finally, I'll set up github actions to aid in
-long-term maintenance.
+then using the stage file afterwards. I need to address miscellaneous comment
+todos. Finally, I'll set up github actions to aid in long-term maintenance.
 
 ## Introduction
 LFStage builds [stage files](https://wiki.gentoo.org/wiki/Stage_file) for
 [Linux From Scratch](https://www.linuxfromscratch.org/). However, it's probably
 agnostic enough to build stage files for other systems.
 
-### Features
-- Profiles
-- Mass stripping
-- Configuration
-- Logging
-
 ### A high-level overview
 The central component of LFStage is the *profile*. A profile defines sources and
 build instructions.
 
-LFStage handles downloading those sources and executing the scripts. LFStage
+LFStage downloads those sources and executes the build instructions. LFStage
 also handles certain boilerplate tasks internally, including cleaning the build
 environment before and after a build, setting up a minimal environment,
 stripping binaries, and saving the stage file.
@@ -57,7 +49,7 @@ make DESTDIR="$PWD/DESTDIR" install
 tree DESTDIR
 ```
 
-<!-- TODO: If there's demand for it, use POSIX-compliant sh for internal scripts
+<!-- TODO: If there's demand for it, use POSIX sh for internal scripts
 -->
 ## Dependencies
 - Required
@@ -68,21 +60,16 @@ tree DESTDIR
     - Bash
     - Git (for importing profiles)
     - Curl (for importing profiles)
-    - LFS requirements
+    - LFS requirements (unless otherwise specified)
 
 <!--
- TODO: Cache results of reqs.sh, maybe in /tmp/lfstage/reqs.cache, so it's
-not run more than once per boot.
-
-Also consider adding support for per-profile `reqs.sh`'s. If I do this, have a
-reqs.env defining the basic functions to reduce boilerplate for profile authors.
-
-Yeah I probably should add per-profile `reqs.sh` support. It's nice to be able
-to check you meet requirements before running `build`, and it would allow
-profile authors a standard way to define profile requirements.
+ TODO: Consider caching the results of reqs.sh, maybe in
+ /tmp/lfstage/reqs.cache, so it's not run more than once per boot.
 -->
-LFStage will run `/usr/lib/lfstage/scripts/reqs.sh` before building to ensure
-general requirements are met.
+Profiles may specify their own requirements as well, and should enforce them
+through a `reqs.sh` script. If none is provided, the default
+`/usr/lib/lfstage/scripts/reqs.sh` is run to ensure general requirements are
+met.
 
 ## Basic usage
 Let's say you wanted to build the profile `x86_64-glibc-tox-stage2`:
@@ -101,14 +88,6 @@ tar tf "$(command ls -1t /var/cache/lfstage/profiles/x86_64-glibc-tox-stage2/sta
 # View the build log
 less -R /var/log/lfstage/lfstage.log
 ```
-
-<!--
- TODO: Add `./patches/`. Explain that the patches should be applied with `git
-apply patches/<patch>`.
-
-Ideas:
-- Compression algorithm patches
--->
 
 ## Profiles
 Here are some profiles for LFStage. They could be considered reference
@@ -142,7 +121,7 @@ profile.
     - [ ] code
 - [ ] `./configure` script, supporting standard variables
 - [x] More configuration options
-    - [x] ~~Jobs~~ Makeflags
+    - [x] Jobs
 - [ ] GitHub actions
     - [ ] Formatting
         - [ ] Trimming white space
