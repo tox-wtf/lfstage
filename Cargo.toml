@@ -10,7 +10,7 @@ license = "GPL-3.0"
 strip = "symbols"
 lto = "thin"
 panic = "abort"
-debug-assertions = true
+debug-assertions = false
 
 [dependencies]
 fshelpers = { git = "https://github.com/tox-wtf/fshelpers.git" }
