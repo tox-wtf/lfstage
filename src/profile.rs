@@ -19,8 +19,8 @@ use is_executable::IsExecutable;
 use crate::{
     exec,
     utils::dl::{
+        self,
         DownloadError,
-        download_sources,
         read_dls_from_file,
     },
 };
@@ -53,10 +53,12 @@ impl AsRef<Profile> for str {
 }
 
 impl fmt::Display for Profile {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", &self.name) }
 }
 
 impl Profile {
+    #[inline]
     pub fn new<S: AsRef<str> + ?Sized>(s: &S) -> &Self {
         // SAFETY: Trust me bro
         unsafe { &*(ptr::from_ref(s.as_ref()) as *const Self) }
@@ -220,7 +222,8 @@ impl Profile {
         Ok(())
     }
 
+    #[inline]
     pub async fn download_sources(&self, download_extant: bool) -> Result<(), DownloadError> {
-        download_sources(self.sources_file(), self.sources_dir(), download_extant).await
+        dl::download_sources(self.sources_file(), self.sources_dir(), download_extant).await
     }
 }

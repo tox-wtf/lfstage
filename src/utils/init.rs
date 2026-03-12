@@ -48,10 +48,12 @@ struct Uptime(Instant);
 
 impl Uptime {
     /// # Create a new [`Uptime`]
+    #[inline]
     fn new() -> Self { Self(Instant::now()) }
 }
 
 impl FormatTime for Uptime {
+    #[inline]
     fn format_time(&self, w: &mut tracing_subscriber::fmt::format::Writer<'_>) -> std::fmt::Result {
         let elapsed = self.0.elapsed();
         let s = elapsed.as_secs();
