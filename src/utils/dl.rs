@@ -41,9 +41,6 @@ use reqwest::{
 use thiserror::Error;
 use tokio::task;
 
-use crate::unravel;
-
-
 
 // TODO: Documentation
 // NOTE: Beware the distinction between timeout and connect_timeout
@@ -167,7 +164,6 @@ async fn download_file<P: AsRef<Path>>(
             | Ok(d) => d,
             | Err(ref e) => {
                 error!("Invalid chunk: {e}");
-                unravel!(e);
                 exit(1)
             },
         };
@@ -208,7 +204,6 @@ pub async fn download_sources<P: AsRef<Path>, Q: AsRef<Path>>(
                 .permit(|e| matches!(e, DownloadError::Extant(_)))
             {
                 error!("Failed to download {} to {}: {e}", dl.url, dest.display());
-                unravel!(e);
                 failed.store(false, Ordering::Relaxed);
             }
         });
