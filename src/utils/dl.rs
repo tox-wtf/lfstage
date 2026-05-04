@@ -9,15 +9,15 @@ use std::process::exit;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
+use std::{fmt, string};
 
 use fshelpers::mkdir_p;
 use futures::StreamExt;
 use futures::future::join_all;
-use httpdate::parse_http_date;
 use permitit::Permit;
 use reqwest::Client;
-use reqwest::header::{HeaderMap, LAST_MODIFIED, USER_AGENT};
+use reqwest::header::{HeaderMap, USER_AGENT};
 use reqwest::redirect::Policy;
 use thiserror::Error;
 use tokio::task;
@@ -88,39 +88,17 @@ pub enum DownloadError {
     Reqwest(#[from] reqwest::Error),
 }
 
-#[inline]
-fn get_upstream_modtime(headers: &HeaderMap) -> Option<SystemTime> {
-    let h = headers.get(LAST_MODIFIED)?;
-    let s = h.to_str().ok()?;
-    let t = parse_http_date(s).ok()?;
-    Some(t)
-}
-
-#[inline]
-fn get_local_modtime(path: &Path) -> Option<SystemTime> {
-    let m = path.metadata().ok()?;
-    let t = m.modified().ok()?;
-    Some(t)
-}
-
 async fn download_file<P: AsRef<Path>>(url: &str, file_path: P, download_extant: bool) -> Result<(), DownloadError> {
     let file_path = file_path.as_ref();
 
-    // Fetch the url
-    debug!("Fetching '{url}'");
-    let resp = CLIENT.get(url).send().await?.error_for_status()?;
-
-    // Skip extant files, but only if upstream's modtime is less than or equal to local
+    // Skip extant files
     if file_path.exists() && !download_extant {
-        let upstream_modtime = get_upstream_modtime(resp.headers()).unwrap_or_else(SystemTime::now);
-        let local_modtime = get_local_modtime(file_path).unwrap_or(SystemTime::UNIX_EPOCH);
-
-        if upstream_modtime <= local_modtime {
-            debug!("Skipping download for extant file '{}'", file_path.display());
-        }
-
+        debug!("Skipping download for extant file '{}'", file_path.display());
         return Err(DownloadError::Extant(file_path.to_owned()));
     }
+
+    // Fetch the url
+    let resp = CLIENT.get(url).send().await?.error_for_status()?;
 
     info!("Downloading '{url}'");
     // Create a part file
