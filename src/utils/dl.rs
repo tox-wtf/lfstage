@@ -130,14 +130,7 @@ async fn download_file<P: AsRef<Path>>(url: &str, file_path: P, download_extant:
 
     // Write the file
     while let Some(chunk) = stream.next().await {
-        let data = match chunk {
-            | Ok(d) => d,
-            | Err(ref e) => {
-                error!("Invalid chunk: {e}");
-                exit(1)
-            },
-        };
-
+        let data = chunk.inspect_err(|e| error!("Invalid chunk: {e}"))?;
         partfile.write_all(&data)?;
     }
 
