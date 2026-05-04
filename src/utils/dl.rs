@@ -1,18 +1,16 @@
 // utils/dl.rs
 //! Utilities related to downloading
 
-use std::fmt;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process::exit;
+use std::process::{Command, exit};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 use std::{fmt, string};
 
-use fshelpers::mkdir_p;
 use futures::StreamExt;
 use futures::future::join_all;
 use permitit::Permit;
@@ -21,6 +19,8 @@ use reqwest::header::{HeaderMap, USER_AGENT};
 use reqwest::redirect::Policy;
 use thiserror::Error;
 use tokio::task;
+
+use crate::profile::Profile;
 
 // TODO: Documentation
 // NOTE: Beware the distinction between timeout and connect_timeout
@@ -84,6 +84,9 @@ pub enum DownloadError {
     #[error("I/O Error: {0}")]
     Io(#[from] io::Error),
 
+    #[error("UTF-8 Error: {0}")]
+    FromUtf8(#[from] string::FromUtf8Error),
+
     #[error("Reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
 }
@@ -116,61 +119,74 @@ async fn download_file<P: AsRef<Path>>(url: &str, file_path: P, download_extant:
 
     // Move the part file to its final destination
     fs::rename(partfile_str, file_path)?;
-    info!("Downloaded '{url}'");
-    debug!("Downloaded {}", file_path.display());
+    info!("Downloaded '{}'", file_path.display());
 
     Ok(())
 }
 
-pub async fn download_sources<P: AsRef<Path>, Q: AsRef<Path>>(sources_list: P, sources_dir: Q, download_extant: bool) -> Result<(), DownloadError> {
-    mkdir_p(&sources_dir)?;
+impl Profile {
+    pub async fn download_sources(&self, download_extant: bool) -> Result<(), DownloadError> {
+        let sources_dir = self.sources_dir();
+        if !sources_dir.exists() {
+            fs::create_dir_all(&sources_dir)?;
+        }
 
-    let failed = Arc::new(AtomicBool::new(false));
+        let failed = Arc::new(AtomicBool::new(false));
 
-    let dls = read_dls_from_file(sources_list)?;
-    trace!("Here's what dls looks like:\n {dls:#?}");
-    let mut tasks = Vec::new();
+        let dls = self.read_dls()?;
+        trace!("Here's what dls looks like:\n {dls:#?}");
+        let mut tasks = Vec::new();
 
-    for dl in dls {
-        let failed = Arc::clone(&failed);
-        let dest = sources_dir.as_ref().join(&dl.dest);
+        for dl in dls {
+            let failed = Arc::clone(&failed);
+            let dest = sources_dir.join(&dl.dest);
 
-        let task = task::spawn(async move {
-            if let Err(e) = download_file(&dl.url, &dest, download_extant)
-                .await
-                .permit(|e| matches!(e, DownloadError::Extant(_)))
-            {
-                error!("Failed to download {} to {}: {e}", dl.url, dest.display());
-                failed.store(false, Ordering::Relaxed);
-            }
-        });
+            let task = task::spawn(async move {
+                if let Err(e) = download_file(&dl.url, &dest, download_extant)
+                    .await
+                    .permit(|e| matches!(e, DownloadError::Extant(_)))
+                {
+                    error!("Failed to download {} to {}: {e}", dl.url, dest.display());
+                    failed.store(false, Ordering::Relaxed);
+                }
+            });
 
-        tasks.push(task);
+            tasks.push(task);
+        }
+
+        join_all(tasks).await;
+        if failed.load(Ordering::Relaxed) {
+            error!("Failed to download one or more sources");
+            exit(1)
+        }
+
+        Ok(())
     }
 
-    join_all(tasks).await;
-    if failed.load(Ordering::Relaxed) {
-        error!("Failed to download one or more sources");
-        exit(1)
+    /// # Read dl's from the sources file
+    ///
+    /// Will fail if the path does not exist, could not be read, contains invalid UTF-8, among other
+    /// errors (basically anywhere `read_to_string()` would fail).
+    #[inline]
+    pub fn read_dls(&self) -> Result<Vec<Download>, DownloadError> {
+        String::from_utf8(Command::new(self.sources_file()).env("ENVS", self.envs_dir().as_os_str()).output()?.stdout)?
+            .lines()
+            .filter(|l| !is_comment(l))
+            .map(|l| strip_comment_part(l).to_string())
+            .map(|dl| dl.parse())
+            .collect::<Result<_, _>>()
     }
 
-    Ok(())
-}
-
-/// # Read dl's from a file
-///
-/// Will fail if the path does not exist, could not be read, contains invalid UTF-8, among other
-/// errors (basically anywhere `read_to_string()` would fail).
-pub fn read_dls_from_file<P>(path: P) -> Result<Vec<Download>, DownloadError>
-where
-    P: AsRef<Path>,
-{
-    fs::read_to_string(path)?
-        .lines()
-        .filter(|l| !is_comment(l))
-        .map(|l| strip_comment_part(l).to_string())
-        .map(|dl| dl.parse())
-        .collect::<Result<_, _>>()
+    pub fn get_registered_sources(&self) -> Vec<String> {
+        self.read_dls()
+            .unwrap_or_else(|e| {
+                error!("Failed to read dls from sources list: {e}");
+                exit(1)
+            })
+            .iter()
+            .map(|dl| dl.dest.clone())
+            .collect()
+    }
 }
 
 /// # Check if a line is a comment or empty

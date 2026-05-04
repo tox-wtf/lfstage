@@ -4,7 +4,6 @@ use clap::Args;
 
 use super::CmdError;
 use crate::profile::Profile;
-use crate::utils::dl::read_dls_from_file;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
@@ -41,7 +40,7 @@ impl Cmd {
         }
 
         if self.dry {
-            let dls = read_dls_from_file(profile.sources_file())?;
+            let dls = profile.read_dls()?;
             println!("Would download the following to '{}':", profile.sources_dir().display());
 
             for dl in &dls {

@@ -10,7 +10,6 @@ use fshelpers::mkdir_p;
 use is_executable::IsExecutable;
 
 use crate::exec;
-use crate::utils::dl::{self, DownloadError, read_dls_from_file};
 
 #[derive(Debug)]
 #[repr(transparent)]
@@ -74,17 +73,6 @@ impl Profile {
 
     #[inline]
     pub fn sources_file(&self) -> PathBuf { self.profile_lib_dir().join("sources") }
-
-    pub fn get_registered_sources(&self) -> Vec<String> {
-        read_dls_from_file(self.sources_file())
-            .unwrap_or_else(|e| {
-                error!("Failed to read dls from sources list: {e}");
-                exit(1)
-            })
-            .iter()
-            .map(|dl| dl.dest.clone())
-            .collect()
-    }
 
     pub fn collect_build_scripts(&self) -> Vec<PathBuf> {
         // Gather all profile-specific scripts
@@ -185,10 +173,5 @@ impl Profile {
         info!("Saved stage file to {}", fs::read_to_string(self.stagefilename_file())?);
 
         Ok(())
-    }
-
-    #[inline]
-    pub async fn download_sources(&self, download_extant: bool) -> Result<(), DownloadError> {
-        dl::download_sources(self.sources_file(), self.sources_dir(), download_extant).await
     }
 }
