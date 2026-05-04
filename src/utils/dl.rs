@@ -197,28 +197,20 @@ where
 
 /// # Check if a line is a comment or empty
 ///
-/// A line is a comment if it starts with '# ', '; ', or '// ' (leading white space is covered).
+/// A line is a comment if it starts with '#' (or is empty after trimming leading whitespace)
 #[rustfmt::skip]
 #[inline]
 fn is_comment(line: &str) -> bool {
     let l = line.trim_start();
     l.is_empty()
-        || l.starts_with("# ")
-        || l.starts_with("; ")
-        || l.starts_with("// ")
+        || l.starts_with('#')
 }
 
 /// # Strips the comment part from a line
 ///
-/// A comment part is the right side of a line containing ' #', ' //', or ' ;'.
+/// A comment part is the right side of a line containing '  #'
 #[rustfmt::skip]
 #[inline]
 fn strip_comment_part(line: &str) -> &str {
-    let comment_starts = [
-        line.find(" #"),
-        line.find(" //"),
-        line.find(" ;"),
-    ];
-
-    comment_starts.into_iter().flatten().min().map_or(line, |i| line[..i].trim_end())
+    line.rsplit_once("  #").map_or(line, |(l, _)| l)
 }
