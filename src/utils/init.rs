@@ -1,6 +1,7 @@
 // utils/init.rs
 //! Initialization utilities
 
+use std::path::Path;
 use std::process::exit;
 use std::str::FromStr;
 use std::sync::OnceLock;
@@ -17,13 +18,12 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 use crate::config::CONFIG;
 
 static LOG_GUARD: OnceLock<WorkerGuard> = OnceLock::new();
+const LOG_FILE: &str = "/var/log/lfstage/lfstage.log";
 
 pub fn init() {
     check_perms();
 
-    let log_file = "/var/log/lfstage/lfstage.log";
-    let _ = fs::remove_file(log_file);
-    log(log_file);
+    log();
 }
 
 #[inline]
@@ -54,27 +54,31 @@ impl FormatTime for Uptime {
 }
 
 #[allow(clippy::expect_used, clippy::unwrap_used)]
-fn log<P: AsRef<str>>(path: P) {
-    let path = path.as_ref();
+fn log() {
+    if let Some(parent) = Path::new(LOG_FILE).parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent).expect("Failed to create directory");
+    }
+    fs::write(LOG_FILE, "").expect("Failed to truncate log file");
 
-    let (dir, file) = path.rsplit_once('/').unwrap_or((".", path));
+    let debug = cfg!(debug_assertions);
+    let level = LevelFilter::from_str(&CONFIG.log_level).unwrap_or(match debug {
+        | true => LevelFilter::TRACE,
+        | false => LevelFilter::DEBUG,
+    });
+
+    let filter = EnvFilter::new(format!("{level},hyper_util=warn,reqwest=warn"));
+
+    let (dir, file) = LOG_FILE.rsplit_once('/').unwrap_or((".", LOG_FILE));
     let file_appender = rolling::never(dir, file);
     let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
-
-    let level = LevelFilter::from_str(&CONFIG.log_level).unwrap_or(LevelFilter::DEBUG);
-    let filter = EnvFilter::builder()
-        .with_default_directive(level.into())
-        .with_env_var("LOG_LEVEL")
-        .from_env_lossy()
-        .add_directive("fshelpers=warn".parse().unwrap())
-        .add_directive("hyper_util=warn".parse().unwrap())
-        .add_directive("reqwest=warn".parse().unwrap());
 
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_level(true)
-        .with_target(cfg!(debug_assertions))
-        .with_line_number(cfg!(debug_assertions))
+        .with_target(debug)
+        .with_line_number(debug)
         .with_timer(Uptime::new())
         .with_writer(file_writer.and(io::stdout))
         .compact()
