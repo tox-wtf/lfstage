@@ -3,13 +3,11 @@
 use clap::Args;
 
 use super::CmdError;
-use crate::config::CONFIG;
 use crate::profile::Profile;
 use crate::utils::dl::read_dls_from_file;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
-    #[arg(default_value = CONFIG.default_profile.as_str())]
     pub profile: String,
 
     /// Whether to forcibly download sources

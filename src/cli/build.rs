@@ -16,7 +16,6 @@ use crate::utils::time::timestamp;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
-    #[arg(default_value = CONFIG.default_profile.as_str())]
     pub profile: String,
 
     /// The absolute path to save the stagefile to

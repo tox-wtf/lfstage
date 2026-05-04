@@ -5,14 +5,12 @@ use std::fs::write;
 use clap::Args;
 use fshelpers::mkdir_p;
 
-use crate::config::CONFIG;
 use crate::exec;
 use crate::profile::Profile;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
     /// The profile to export
-    #[arg(default_value = CONFIG.default_profile.as_str())]
     pub profile: String,
 
     /// An optional destination for the exported tarball
