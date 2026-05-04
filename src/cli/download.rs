@@ -3,11 +3,9 @@
 use clap::Args;
 
 use super::CmdError;
-use crate::{
-    config::CONFIG,
-    profile::Profile,
-    utils::dl::read_dls_from_file,
-};
+use crate::config::CONFIG;
+use crate::profile::Profile;
+use crate::utils::dl::read_dls_from_file;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
@@ -46,10 +44,7 @@ impl Cmd {
 
         if self.dry {
             let dls = read_dls_from_file(profile.sources_file())?;
-            println!(
-                "Would download the following to '{}':",
-                profile.sources_dir().display()
-            );
+            println!("Would download the following to '{}':", profile.sources_dir().display());
 
             for dl in &dls {
                 println!("    {dl}");

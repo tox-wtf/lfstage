@@ -1,24 +1,18 @@
 // cli/build.rs
 
-use std::{
-    fs,
-    path::Path,
-    process::exit,
-};
+use std::fs;
+use std::path::Path;
+use std::process::exit;
 
 use clap::Args;
 use fshelpers::mkdir_p;
 
-use super::{
-    CmdError,
-    clean::clean_lfs,
-};
-use crate::{
-    config::CONFIG,
-    exec,
-    profile::Profile,
-    utils::time::timestamp,
-};
+use super::CmdError;
+use super::clean::clean_lfs;
+use crate::config::CONFIG;
+use crate::exec;
+use crate::profile::Profile;
+use crate::utils::time::timestamp;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
@@ -50,8 +44,7 @@ impl Cmd {
     ///
     /// # Arguments
     /// * `self.profile`    - The profile to build, defaults to "x86_64-glibc-tox".
-    /// * `self.stagefile`  - The path to the built stagefile, defaults to
-    ///   "/var/cache/lfstage/stages/lfstage-<profile>-<timestamp>.tar.xz".
+    /// * `self.stagefile`  - The path to the built stagefile, defaults to "/var/cache/lfstage/stages/lfstage-<profile>-<timestamp>.tar.xz".
     /// * `self.dry`        - If true, perform a dry run, building nothing.
     ///
     /// * `self.skip_reqs`  - Don't check system requirements
@@ -69,9 +62,7 @@ impl Cmd {
         // positional argument is set.
         let stagefile = match &self.stagefile {
             | Some(path) => path.clone(),
-            | None => format!(
-                "/var/cache/lfstage/profiles/{profile}/stages/lfstage-{profile}-{timestamp}.tar.xz",
-            ),
+            | None => format!("/var/cache/lfstage/profiles/{profile}/stages/lfstage-{profile}-{timestamp}.tar.xz",),
         };
 
         // Write some variables to files in `profile_tmpdir` to be accessed later:
@@ -133,8 +124,8 @@ impl Cmd {
 fn check_reqs(profile: &Profile) {
     let custom_reqs = format!("/var/lib/lfstage/profiles/{profile}/reqs.sh");
     let reqs_script = match Path::new(&custom_reqs).exists() {
-        true => custom_reqs.as_str(),
-        false => "/usr/lib/lfstage/scripts/reqs.sh",
+        | true => custom_reqs.as_str(),
+        | false => "/usr/lib/lfstage/scripts/reqs.sh",
     };
 
     if let Err(e) = exec!(&profile; reqs_script) {

@@ -1,19 +1,13 @@
 #![allow(clippy::expect_used)]
 
-use std::{
-    fs::{self, File}, io::{
-        self,
-        BufRead, Write,
-    }, path::Path, process::{
-        Command,
-        Stdio,
-        exit,
-    }, thread
-};
+use std::fs::{self, File};
+use std::io::{self, BufRead, Write};
+use std::path::Path;
+use std::process::{Command, Stdio, exit};
+use std::thread;
 
-use crate::{
-    config::CONFIG, profile::Profile
-};
+use crate::config::CONFIG;
+use crate::profile::Profile;
 
 // TODO: Create a thiserror for script failures prolly
 
@@ -40,7 +34,7 @@ where
         let profile = profile.as_ref();
         let base_env = profile.envs_dir().join("base.env");
 
-        if ! base_env.exists() {
+        if !base_env.exists() {
             error!("Base environment '{}' does not exist.", base_env.display());
             error!("Refusing to execute commands without a defined environment.");
             exit(1)
@@ -51,7 +45,7 @@ where
         let mut f = File::options().append(true).open("/tmp/lfstage/bashenv")?;
 
         let appended_env = format!(
-"export ENVS={envs_dir}
+            "export ENVS={envs_dir}
 export SCRIPTS={scripts_dir}
 export JOBS={jobs}
 export LFSTAGE_PROFILE={profile}
@@ -98,9 +92,7 @@ source {rcfile} || exit 2",
     let status = child.wait()?;
     if !status.success() {
         error!("Command failed: {status}");
-        return Err(io::Error::other(format!(
-            "Command failed: {status}"
-        )));
+        return Err(io::Error::other(format!("Command failed: {status}")));
     }
 
     stdout_thread.join().expect("Handle already joined");
@@ -125,12 +117,10 @@ macro_rules! exec {
     // Pattern: just a script
     ($script:expr) => {{
         use std::path::Path;
+
         use $crate::profile::Profile;
 
-        debug!(
-            "Executing {} without a profile",
-            Path::new($script).display(),
-        );
+        debug!("Executing {} without a profile", Path::new($script).display(),);
         $crate::utils::cmd::exec::<&Profile, _>(None, $script)
     }};
 }

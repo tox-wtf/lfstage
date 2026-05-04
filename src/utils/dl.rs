@@ -1,46 +1,26 @@
 // utils/dl.rs
 //! Utilities related to downloading
 
-use std::{
-    fmt, fs::{
-        self,
-        File,
-    }, io::{
-        self,
-        Write,
-    }, path::{
-        Path,
-        PathBuf,
-    }, process::exit, str::FromStr, sync::{
-        Arc, LazyLock, atomic::{
-            AtomicBool,
-            Ordering,
-        }
-    }, time::{
-        Duration,
-        SystemTime,
-    }
-};
+use std::fmt;
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+use std::process::exit;
+use std::str::FromStr;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, LazyLock};
+use std::time::{Duration, SystemTime};
 
 use fshelpers::mkdir_p;
-use futures::{
-    StreamExt,
-    future::join_all,
-};
+use futures::StreamExt;
+use futures::future::join_all;
 use httpdate::parse_http_date;
 use permitit::Permit;
-use reqwest::{
-    Client,
-    header::{
-        HeaderMap,
-        LAST_MODIFIED,
-        USER_AGENT,
-    },
-    redirect::Policy,
-};
+use reqwest::Client;
+use reqwest::header::{HeaderMap, LAST_MODIFIED, USER_AGENT};
+use reqwest::redirect::Policy;
 use thiserror::Error;
 use tokio::task;
-
 
 // TODO: Documentation
 // NOTE: Beware the distinction between timeout and connect_timeout
@@ -56,10 +36,7 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
         .redirect(Policy::limited(32))
         .default_headers({
             let mut headers = HeaderMap::new();
-            headers.insert(
-                USER_AGENT,
-                user_agent.parse().expect("User agent is invalid"),
-            );
+            headers.insert(USER_AGENT, user_agent.parse().expect("User agent is invalid"));
             headers
         })
         .connect_timeout(Duration::from_mins(2))
@@ -69,14 +46,12 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
 
 #[derive(Debug)]
 pub struct Download {
-    pub url: String,
+    pub url:  String,
     pub dest: String,
 }
 
 impl fmt::Display for Download {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} -> {}", self.url, self.dest)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{} -> {}", self.url, self.dest) }
 }
 
 impl FromStr for Download {
@@ -84,11 +59,17 @@ impl FromStr for Download {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some((u, f)) = s.split_once(" -> ") {
-            return Ok(Self { url: u.to_string(), dest: f.to_string() });
+            return Ok(Self {
+                url:  u.to_string(),
+                dest: f.to_string(),
+            });
         }
 
         let (_, f) = s.rsplit_once('/').ok_or_else(|| DownloadError::InvalidUrl(s.to_string()))?;
-        Ok(Self { url: s.to_string(), dest: f.to_string() })
+        Ok(Self {
+            url:  s.to_string(),
+            dest: f.to_string(),
+        })
     }
 }
 
@@ -122,20 +103,12 @@ fn get_local_modtime(path: &Path) -> Option<SystemTime> {
     Some(t)
 }
 
-async fn download_file<P: AsRef<Path>>(
-    url: &str,
-    file_path: P,
-    download_extant: bool,
-) -> Result<(), DownloadError> {
+async fn download_file<P: AsRef<Path>>(url: &str, file_path: P, download_extant: bool) -> Result<(), DownloadError> {
     let file_path = file_path.as_ref();
 
     // Fetch the url
     debug!("Fetching '{url}'");
-    let resp = CLIENT
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?;
+    let resp = CLIENT.get(url).send().await?.error_for_status()?;
 
     // Skip extant files, but only if upstream's modtime is less than or equal to local
     if file_path.exists() && !download_extant {
@@ -143,10 +116,7 @@ async fn download_file<P: AsRef<Path>>(
         let local_modtime = get_local_modtime(file_path).unwrap_or(SystemTime::UNIX_EPOCH);
 
         if upstream_modtime <= local_modtime {
-            debug!(
-                "Skipping download for extant file '{}'",
-                file_path.display()
-            );
+            debug!("Skipping download for extant file '{}'", file_path.display());
         }
 
         return Err(DownloadError::Extant(file_path.to_owned()));
@@ -181,11 +151,7 @@ async fn download_file<P: AsRef<Path>>(
     Ok(())
 }
 
-pub async fn download_sources<P: AsRef<Path>, Q: AsRef<Path>>(
-    sources_list: P,
-    sources_dir: Q,
-    download_extant: bool,
-) -> Result<(), DownloadError> {
+pub async fn download_sources<P: AsRef<Path>, Q: AsRef<Path>>(sources_list: P, sources_dir: Q, download_extant: bool) -> Result<(), DownloadError> {
     mkdir_p(&sources_dir)?;
 
     let failed = Arc::new(AtomicBool::new(false));

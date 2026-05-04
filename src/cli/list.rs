@@ -1,9 +1,7 @@
 // cli/list.rs
 
-use std::{
-    fs,
-    path::Path,
-};
+use std::fs;
+use std::path::Path;
 
 use clap::Args;
 
@@ -39,10 +37,7 @@ impl Cmd {
                 println!("Available profiles:");
                 for profile_path in all_profiles {
                     #[allow(clippy::expect_used)]
-                    let profile = profile_path
-                        .file_name()
-                        .expect("Profile should have a name")
-                        .to_string_lossy();
+                    let profile = profile_path.file_name().expect("Profile should have a name").to_string_lossy();
                     println!("{profile} at {}", profile_path.display());
                 }
             },

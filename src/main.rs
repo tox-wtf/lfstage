@@ -9,8 +9,7 @@ use std::process::exit;
 
 use clap::Parser;
 
-#[macro_use]
-extern crate tracing;
+#[macro_use] extern crate tracing;
 
 #[tokio::main]
 async fn main() {

@@ -1,8 +1,6 @@
-use std::{
-    fs,
-    path::Path,
-    sync::LazyLock,
-};
+use std::fs;
+use std::path::Path;
+use std::sync::LazyLock;
 
 use serde::Deserialize;
 

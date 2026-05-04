@@ -1,27 +1,18 @@
 // utils/init.rs
 //! Initialization utilities
 
-use std::{
-    io,
-    fs,
-    process::exit,
-    str::FromStr,
-    sync::OnceLock,
-    time::Instant,
-};
+use std::process::exit;
+use std::str::FromStr;
+use std::sync::OnceLock;
+use std::time::Instant;
+use std::{fs, io};
 
 use tracing::metadata::LevelFilter;
-use tracing_appender::{
-    non_blocking::WorkerGuard,
-    rolling,
-};
-use tracing_subscriber::{
-    EnvFilter,
-    fmt::{
-        time::FormatTime,
-        writer::MakeWriterExt,
-    },
-};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_appender::rolling;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt::time::FormatTime;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 use crate::config::CONFIG;
 

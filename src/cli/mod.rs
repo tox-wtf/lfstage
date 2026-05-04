@@ -5,17 +5,12 @@ pub mod export;
 pub mod import;
 pub mod list;
 
-use std::{
-    io,
-    path::PathBuf,
-};
+use std::io;
+use std::path::PathBuf;
 
 use clap::builder::Styles;
 use clap::builder::styling::AnsiColor;
-use clap::{
-    Parser,
-    Subcommand,
-};
+use clap::{Parser, Subcommand};
 use thiserror::Error;
 
 use crate::utils::dl::DownloadError;

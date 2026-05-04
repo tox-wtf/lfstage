@@ -5,11 +5,9 @@ use std::fs::write;
 use clap::Args;
 use fshelpers::mkdir_p;
 
-use crate::{
-    config::CONFIG,
-    exec,
-    profile::Profile,
-};
+use crate::config::CONFIG;
+use crate::exec;
+use crate::profile::Profile;
 
 #[derive(Args, Debug)]
 pub struct Cmd {
@@ -34,9 +32,7 @@ impl Cmd {
             .unwrap_or_else(|| format!("/var/cache/lfstage/profiles/{}.tar.xz", &profile.name));
 
         if self.dry {
-            println!(
-                "Would run /usr/lib/lfstage/scripts/export.sh with profile '{profile}' and destination '{out}'",
-            );
+            println!("Would run /usr/lib/lfstage/scripts/export.sh with profile '{profile}' and destination '{out}'");
             return Ok(())
         }
 

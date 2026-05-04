@@ -1,29 +1,16 @@
 // profile.rs
 //! The profile struct and related code
 
-use std::{
-    ptr,
-    ffi::OsStr,
-    fmt,
-    fs,
-    path::{
-        Path,
-        PathBuf,
-    },
-    process::exit,
-};
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
+use std::process::exit;
+use std::{fmt, fs, ptr};
 
 use fshelpers::mkdir_p;
 use is_executable::IsExecutable;
 
-use crate::{
-    exec,
-    utils::dl::{
-        self,
-        DownloadError,
-        read_dls_from_file,
-    },
-};
+use crate::exec;
+use crate::utils::dl::{self, DownloadError, read_dls_from_file};
 
 #[derive(Debug)]
 #[repr(transparent)]
@@ -33,23 +20,17 @@ pub struct Profile {
 
 impl AsRef<Self> for Profile {
     #[inline]
-    fn as_ref(&self) -> &Self {
-        self
-    }
+    fn as_ref(&self) -> &Self { self }
 }
 
 impl AsRef<str> for Profile {
     #[inline]
-    fn as_ref(&self) -> &str {
-        &self.name
-    }
+    fn as_ref(&self) -> &str { &self.name }
 }
 
 impl AsRef<Profile> for str {
     #[inline]
-    fn as_ref(&self) -> &Profile {
-        Profile::new(self)
-    }
+    fn as_ref(&self) -> &Profile { Profile::new(self) }
 }
 
 impl fmt::Display for Profile {
@@ -74,16 +55,10 @@ impl Profile {
     pub fn timestamp_file(&self) -> PathBuf { self.tmp_dir().join("timestamp") }
 
     #[inline]
-    pub fn profile_lib_dir(&self) -> PathBuf {
-        Path::new("/var/lib/lfstage/profiles")
-            .join(&self.name)
-    }
+    pub fn profile_lib_dir(&self) -> PathBuf { Path::new("/var/lib/lfstage/profiles").join(&self.name) }
 
     #[inline]
-    pub fn profile_cache_dir(&self) -> PathBuf {
-        Path::new("/var/cache/lfstage/profiles")
-            .join(&self.name)
-    }
+    pub fn profile_cache_dir(&self) -> PathBuf { Path::new("/var/cache/lfstage/profiles").join(&self.name) }
 
     #[inline]
     pub fn envs_dir(&self) -> PathBuf { self.profile_lib_dir().join("envs") }
@@ -179,14 +154,7 @@ impl Profile {
                 },
             })
             .map(|e| e.path())
-            .filter(|p| {
-                registered.contains(
-                    &p.file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
-                )
-            })
+            .filter(|p| registered.contains(&p.file_name().unwrap_or_default().to_string_lossy().to_string()))
             .collect::<Vec<_>>();
 
         debug!("Found registered sources: {sources:#?}");
@@ -214,10 +182,7 @@ impl Profile {
             exit(1)
         }
 
-        info!(
-            "Saved stage file to {}",
-            fs::read_to_string(self.stagefilename_file())?
-        );
+        info!("Saved stage file to {}", fs::read_to_string(self.stagefilename_file())?);
 
         Ok(())
     }
