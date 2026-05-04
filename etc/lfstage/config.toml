@@ -1,5 +1,5 @@
 # LFStage config
 
-nproc = 5
+nproc = 0
 strip = true
 log_level = "trace"

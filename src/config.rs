@@ -42,13 +42,19 @@ impl Config {
             | Ok(s) => s,
         };
 
-        match toml::de::from_str(&config_str) {
+        let mut config = match toml::de::from_str(&config_str) {
             | Err(e) => {
                 eprintln!("Invalid config: {e}");
                 eprintln!("Falling back to the default config.");
                 Self::default()
             },
             | Ok(c) => c,
+        };
+
+        if config.jobs == 0 {
+            config.jobs = num_cpus::get();
         }
+
+        config
     }
 }
