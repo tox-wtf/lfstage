@@ -61,7 +61,7 @@ impl Cmd {
         // positional argument is set.
         let stagefile = match &self.stagefile {
             | Some(path) => path.clone(),
-            | None => format!("/var/cache/lfstage/profiles/{profile}/stages/lfstage-{profile}-{timestamp}.tar.xz",),
+            | None => format!("/var/cache/lfstage/profiles/{profile}/stages/lfstage-{profile}-{timestamp}.tar.xz"),
         };
 
         // Write some variables to files in `profile_tmpdir` to be accessed later:
