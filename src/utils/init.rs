@@ -68,7 +68,7 @@ fn log() {
         | false => LevelFilter::DEBUG,
     });
 
-    let filter = EnvFilter::new(format!("{level},hyper_util=warn,reqwest=warn"));
+    let filter = EnvFilter::new(format!("{level},rustls=warn,hyper_util=warn,reqwest=warn"));
 
     let (dir, file) = LOG_FILE.rsplit_once('/').unwrap_or((".", LOG_FILE));
     let file_appender = rolling::never(dir, file);
