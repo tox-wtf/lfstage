@@ -14,7 +14,7 @@ could still use some work. Support for profile imports and exports looks solid.
 I plan to write HTML docs with `mdbook` that run through the entire process of
 creating a profile, from setting up the git repo to executing the build, and
 then using the stage file afterwards. I need to address miscellaneous comment
-todos. Finally, I'll set up github actions to aid in long-term maintenance.
+todos.
 
 ## Introduction
 LFStage builds [stage files](https://wiki.gentoo.org/wiki/Stage_file) for
@@ -35,7 +35,6 @@ To download and install LFStage run the following commands:
 ```bash
 git clone https://github.com/tox-wtf/lfstage.git
 cd lfstage
-git submodule update
 
 # TODO: Add ./configure
 make
