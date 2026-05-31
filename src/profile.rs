@@ -127,6 +127,7 @@ impl Profile {
         }
     }
 
+    #[allow(clippy::expect_used)]
     pub fn setup_sources(&self) -> std::io::Result<()> {
         let registered = self.get_registered_sources();
 
@@ -158,6 +159,23 @@ impl Profile {
 
             let dest = lfs_sources.join(source_filename);
             fs::copy(source, dest)?;
+        }
+
+        let vendored_dir = self.profile_lib_dir().join("vendored");
+
+        if !vendored_dir.is_dir() {
+            // No vendored sources to copy
+            return Ok(())
+        }
+
+        for entry in fs::read_dir(vendored_dir)?
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_ok_and(|ft| ft.is_file()))
+        {
+            fs::copy(
+                entry.path(),
+                lfs_sources.join(entry.file_name().to_str().expect("Invalid UTF-8 in vendored source")),
+            )?;
         }
 
         Ok(())
