@@ -15,7 +15,7 @@ TMPDIR="/tmp/lfstage/$LFSTAGE_PROFILE"
 
 # Mass strip
 if [ -f "$TMPDIR/strip" ]; then
-    msg "Mass stripping..."
+    log_info "Mass stripping..."
     find . -type f -executable -exec file {} + |
         grep 'not stripped' |
         cut -d: -f1         |
@@ -23,11 +23,11 @@ if [ -f "$TMPDIR/strip" ]; then
             echo "lfstage: stripping $file"
             strip --strip-unneeded "$file"
         done
-    msg "Stripped!"
+    log_info "Stripped!"
 fi
 
 # Save the stage file
-msg "Saving stage file..."
+log_info "Saving stage file..."
 STAGEFILE="$(cat "/tmp/lfstage/$LFSTAGE_PROFILE/stagefilename")"
 XZ_OPT=-9e tar cJpf "$STAGEFILE" .
 

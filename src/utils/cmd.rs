@@ -85,7 +85,14 @@ source {rcfile} || exit 2",
     let stderr_thread = thread::spawn(move || {
         let reader = io::BufReader::new(stderr);
         for line in reader.lines().map_while(Result::ok) {
-            debug!("{line}");
+            match line.as_bytes() {
+                | b if b.starts_with(b"@log@err") => error!("{}", &line[8..]),
+                | b if b.starts_with(b"@log@wrn") => warn!("{}", &line[8..]),
+                | b if b.starts_with(b"@log@inf") => info!("{}", &line[8..]),
+                | b if b.starts_with(b"@log@dbg") => debug!("{}", &line[8..]),
+                | b if b.starts_with(b"@log@trc") => trace!("{}", &line[8..]),
+                | _ => debug!("{line}"),
+            }
         }
     });
 
