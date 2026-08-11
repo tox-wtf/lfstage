@@ -1,6 +1,6 @@
-all: build
+all: build build-man
 
-build: build-man
+build:
 	cargo build --release
 
 clean:
