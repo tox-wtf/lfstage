@@ -1,3 +1,9 @@
+> [!IMPORTANT]
+> [LFStage](https://github.com/tox-wtf/lfstage) has been rewritten as
+> [lfstage](https://git.gay/tox/lfstage-template).
+> To avoid confusion, this repository is archived and slated for removal in
+> 2027.
+
 <h1 align="center">
 LFStage
 </h1>
